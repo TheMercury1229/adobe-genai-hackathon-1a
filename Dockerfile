@@ -21,4 +21,4 @@ COPY enhanced_label_encoder.joblib .
 COPY enhanced_model_metadata.json .
 
 # Default command to run the pipeline
-CMD ["python", "pipeline.py"]
+CMD ["python", "app/pipeline.py"]
