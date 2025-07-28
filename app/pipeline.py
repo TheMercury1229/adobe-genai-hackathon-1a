@@ -1,7 +1,7 @@
 """
 Automated PDF Processing Pipeline
-1. Process all PDFs in 'pdf-new' folder
-2. Create CSV files in 'csv-new' folder using create_csv.py functions
+1. Process all PDFs in 'pdfs' folder
+2. Create CSV files in 'csv' folder using create_csv.py functions
 3. Run predictions using trained model (enhanced_label_encoder.joblib)
 4. Generate JSON outline files in 'output' directory
 """
@@ -22,7 +22,6 @@ try:
         save_to_csv
     )
     CSV_MODULE_AVAILABLE = True
-    print("✅ Successfully imported create_csv.py functions")
 except ImportError as e:
     CSV_MODULE_AVAILABLE = False
     print(f"❌ Could not import create_csv.py: {e}")
@@ -31,7 +30,7 @@ except ImportError as e:
 
 def setup_directories():
     """Create necessary directories if they don't exist"""
-    directories = ['pdf-new', 'csv-new',
+    directories = ['pdfs', 'csv',
                    'output']  # Changed 'results' to 'output'
 
     for dir_name in directories:
@@ -54,20 +53,9 @@ def load_trained_model():
         # Load metadata
         with open('enhanced_model_metadata.json', 'r') as f:
             metadata = json.load(f)
-
-        print("✅ Model loaded successfully!")
-        print(f"   Model type: {metadata['model_info']['type']}")
-        print(f"   Features expected: {metadata['model_info']['n_features']}")
-        print(f"   Classes: {metadata['class_names']}")
-
         return model, label_encoder, metadata
 
     except FileNotFoundError as e:
-        print(f"❌ Error: Required model files not found!")
-        print("   Make sure you have:")
-        print("   - enhanced_pdf_heading_rf_model.joblib")
-        print("   - enhanced_label_encoder.joblib")
-        print("   - enhanced_model_metadata.json")
         return None, None, None
     except Exception as e:
         print(f"❌ Error loading model: {e}")
@@ -76,9 +64,6 @@ def load_trained_model():
 
 def preprocess_csv_for_prediction(df, expected_features):
     """Preprocess CSV data to match training format - same as training preprocessing"""
-
-    print(f"📊 Preprocessing data for prediction...")
-    print(f"   Original shape: {df.shape}")
 
     # Convert numeric columns
     numeric_columns = [
@@ -246,37 +231,27 @@ def process_single_pdf(pdf_path, csv_output_dir, model, label_encoder, expected_
     """Process a single PDF through the complete pipeline"""
 
     pdf_name = Path(pdf_path).stem
-    print(f"\n🔄 Processing: {pdf_name}")
 
     try:
         # Step 1: Extract features using create_csv.py functions
-        print("   📄 Extracting PDF features...")
         features = extract_pdf_features(pdf_path)
 
         if not features:
-            print(f"   ❌ No features extracted from {pdf_name}")
             return None
 
-        print(f"   📊 Extracted {len(features)} text elements")
-
         # Step 2: Filter significant elements
-        print("   🔍 Filtering significant elements...")
         filtered_features, filter_stats = filter_significant_elements(features)
 
         if not filtered_features:
             print(f"   ⚠️  No significant elements after filtering, using original data")
             filtered_features = features
 
-        print(
-            f"   📊 {len(filtered_features)} significant elements after filtering")
-
-        # Step 3: Save CSV file in csv-new directory
+        # Step 3: Save CSV file in csv directory
         csv_filename = f"pdf_features_filtered-{pdf_name}.csv"
         csv_path = os.path.join(csv_output_dir, csv_filename)
 
         df = pd.DataFrame(filtered_features)
         df.to_csv(csv_path, index=False)
-        print(f"   💾 CSV saved: {csv_path}")
 
         # Step 4: Preprocess for prediction
         print("   🔧 Preprocessing for prediction...")
@@ -302,7 +277,6 @@ def process_single_pdf(pdf_path, csv_output_dir, model, label_encoder, expected_
             results_df[f'prob_{class_name}'] = prediction_probs[:, i]
 
         # Step 7: Create JSON outline (FIXED - no duplicate title)
-        print("   📋 Creating JSON outline...")
         json_outline = create_outline_json(results_df, pdf_name)
 
         # Save JSON outline
@@ -317,13 +291,6 @@ def process_single_pdf(pdf_path, csv_output_dir, model, label_encoder, expected_
         print(f"   📈 Prediction Summary:")
         for label, count in pred_counts.items():
             percentage = (count / len(predicted_labels)) * 100
-            print(f"      {label}: {count} ({percentage:.1f}%)")
-
-        print(f"   📊 Mean confidence: {confidence_scores.mean():.3f}")
-        print(f"   📋 JSON outline saved: {json_path}")
-        print(
-            f"   📖 Total headings in outline: {len(json_outline['outline'])}")
-
         return {
             'pdf_name': pdf_name,
             'csv_path': csv_path,
@@ -359,7 +326,6 @@ def run_pipeline():
         return
 
     # Step 3: Load trained model
-    print("\n🤖 Loading trained model...")
     model, label_encoder, metadata = load_trained_model()
     if model is None:
         print("❌ Cannot proceed without trained model")
@@ -368,20 +334,16 @@ def run_pipeline():
     expected_features = metadata['feature_columns']
 
     # Step 4: Find PDFs to process
-    pdf_dir = "pdf-new"
+    pdf_dir = "pdfs"
     pdf_files = [f for f in os.listdir(pdf_dir) if f.lower().endswith('.pdf')]
 
     if not pdf_files:
-        print(f"\n❌ No PDF files found in '{pdf_dir}' directory")
-        print(f"Please add PDF files to the '{pdf_dir}' directory")
         return
 
-    print(f"\n📚 Found {len(pdf_files)} PDF files to process:")
     for i, pdf_file in enumerate(pdf_files, 1):
         print(f"   {i}. {pdf_file}")
 
     # Step 5: Process each PDF
-    print(f"\n🚀 Starting processing pipeline...")
     results = []
     successful = 0
 
@@ -392,7 +354,7 @@ def run_pipeline():
 
         result = process_single_pdf(
             pdf_path,
-            "csv-new",
+            "csv",
             model,
             label_encoder,
             expected_features
@@ -406,24 +368,13 @@ def run_pipeline():
             print(f"❌ Failed to process: {pdf_file}")
 
     # Step 6: Generate summary report
-    print(f"\n" + "="*70)
-    print("PIPELINE COMPLETION SUMMARY")
-    print("="*70)
-
-    print(f"📊 Total PDFs: {len(pdf_files)}")
-    print(f"✅ Successfully processed: {successful}")
-    print(f"❌ Failed: {len(pdf_files) - successful}")
 
     if results:
-        print(f"\n📈 Processing Statistics:")
+
         total_elements = sum(r['total_elements'] for r in results)
         total_headings = sum(r['total_headings'] for r in results)
         avg_confidence = sum(r['mean_confidence']
                              for r in results) / len(results)
-
-        print(f"   Total text elements processed: {total_elements}")
-        print(f"   Total headings extracted: {total_headings}")
-        print(f"   Average confidence: {avg_confidence:.3f}")
 
         # Aggregate predictions
         all_predictions = {}
@@ -431,14 +382,9 @@ def run_pipeline():
             for label, count in result['predictions'].items():
                 all_predictions[label] = all_predictions.get(label, 0) + count
 
-        print(f"\n🏷️  Overall Heading Distribution:")
         for label, count in sorted(all_predictions.items(), key=lambda x: x[1], reverse=True):
             percentage = (count / total_elements) * 100
             print(f"   {label}: {count} ({percentage:.1f}%)")
-
-        print(f"\n📁 Output Files:")
-        print(f"   📄 CSV files: csv-new/ directory")
-        print(f"   📋 JSON outlines: output/ directory")
 
         # Create summary report
         summary_data = []
@@ -454,22 +400,10 @@ def run_pipeline():
         summary_df = pd.DataFrame(summary_data)
         summary_path = "output/pipeline_summary.csv"
         summary_df.to_csv(summary_path, index=False)
-        print(f"   📋 Summary report: {summary_path}")
-
-    print(f"\n🎉 Pipeline completed!")
 
 
 def main():
     """Main entry point"""
-
-    print("PDF Heading Detection - Automated Pipeline")
-    print("\nThis pipeline will:")
-    print("1. Process all PDFs in 'pdf-new' folder")
-    print("2. Create CSV files in 'csv-new' folder")
-    print("3. Run heading predictions using trained model")
-    print("4. Save JSON outlines in 'output' folder")
-    print("\n🚀 Starting pipeline...")
-
     run_pipeline()
 
 

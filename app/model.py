@@ -22,28 +22,14 @@ warnings.filterwarnings('ignore')
 def validate_and_analyze_features(df, feature_columns):
     """Comprehensive feature validation and analysis."""
 
-    print("\n" + "="*60)
-    print("FEATURE VALIDATION AND ANALYSIS")
-    print("="*60)
-
     for col in feature_columns:
         if col not in df.columns:
             continue
 
-        print(f"\n📊 Analyzing feature: {col}")
-        print(f"   Data type: {df[col].dtype}")
-        print(f"   Unique values: {df[col].nunique()}")
-        print(f"   Missing values: {df[col].isnull().sum()}")
-
         if df[col].nunique() <= 10:  # Show value counts for categorical-like features
             value_counts = df[col].value_counts()
-            print(f"   Value distribution:")
             for val, count in value_counts.items():
                 pct = (count / len(df)) * 100
-                print(f"     {val}: {count} ({pct:.1f}%)")
-        else:
-            print(f"   Range: {df[col].min()} to {df[col].max()}")
-            print(f"   Mean: {df[col].mean():.3f}, Std: {df[col].std():.3f}")
 
         # Check if feature has any variance
         if df[col].nunique() == 1:
@@ -56,10 +42,6 @@ def validate_and_analyze_features(df, feature_columns):
 
 def enhanced_feature_engineering(df):
     """Enhanced feature engineering with proper weighting."""
-
-    print("\n" + "="*50)
-    print("ENHANCED FEATURE ENGINEERING")
-    print("="*50)
 
     # Convert boolean columns more robustly
     boolean_columns = [
@@ -91,10 +73,8 @@ def enhanced_feature_engineering(df):
 
             final_unique = df[col].unique()
             value_counts = df[col].value_counts().to_dict()
-            print(f"  → Result: {final_unique} (distribution: {value_counts})")
 
     # Create composite features to give more weight to formatting
-    print("\n🔧 Creating composite formatting features...")
 
     # Strong formatting indicator
     formatting_features = ['is_bold', 'is_italic',
@@ -135,13 +115,10 @@ def enhanced_feature_engineering(df):
 
         df['is_top_third'] = (df['relative_y'] < 0.33).astype(int)
         df['is_left_aligned'] = (df['relative_x'] < 0.1).astype(int)
-        print(
-            f"Created position features: top_third={df['is_top_third'].sum()}, left_aligned={df['is_left_aligned'].sum()}")
     else:
         # Create default values if coordinates missing
         df['is_top_third'] = 0
         df['is_left_aligned'] = 0
-        print("Created default position features (missing coordinate data)")
 
     # Text length categories
     if 'char_count' in df.columns:
@@ -153,14 +130,12 @@ def enhanced_feature_engineering(df):
         df['is_medium_text'] = ((df['char_count'] > 5) & (
             df['char_count'] <= 50)).astype(int)
         df['is_long_text'] = (df['char_count'] > 50).astype(int)
-        print(
-            f"Created text length features: short={df['is_short_text'].sum()}, medium={df['is_medium_text'].sum()}, long={df['is_long_text'].sum()}")
+
     else:
         # Create default values
         df['is_short_text'] = 0
         df['is_medium_text'] = 1  # Default to medium
         df['is_long_text'] = 0
-        print("Created default text length features (missing char_count)")
 
     return df
 
@@ -168,15 +143,10 @@ def enhanced_feature_engineering(df):
 def load_and_preprocess_csv(csv_path):
     """Enhanced CSV loading with better preprocessing."""
 
-    print(f"Loading CSV from: {csv_path}")
-
     # Load the CSV file
     df = pd.read_csv(csv_path, header=0)
-    print(f"Original data shape: {df.shape}")
-    print(f"Columns: {list(df.columns)}")
 
     # Always check first few rows for potential header issues
-    print(f"\nFirst row values: {df.iloc[0].tolist()}")
 
     # More robust header detection - check if first row contains obvious header strings
     first_row_str = df.iloc[0].astype(str).str.lower()
@@ -186,8 +156,6 @@ def load_and_preprocess_csv(csv_path):
     if any(indicator in ' '.join(first_row_str.values) for indicator in header_indicators):
         print("⚠️  DETECTED: First row contains column names/headers. Removing it...")
         df = df.iloc[1:].reset_index(drop=True)
-        print(f"Data shape after header removal: {df.shape}")
-        print(f"New first row: {df.iloc[0].tolist()}")
 
     # Additional check: if any numeric columns have string values, likely header issue
     numeric_test_cols = ['page_num', 'font_size_ratio', 'char_count']
@@ -228,9 +196,6 @@ def load_and_preprocess_csv(csv_path):
             if nan_count > 0:
                 fill_value = df[col].median() if col != 'page_num' else 1
                 df[col] = df[col].fillna(fill_value)
-                print(f"  → Filled {nan_count} NaN values with {fill_value}")
-
-            print(f"  → Converted from {original_dtype} to {df[col].dtype}")
 
     # Create normalized coordinates BEFORE feature engineering
     if 'page_width' in df.columns and 'page_height' in df.columns:
@@ -264,20 +229,12 @@ def load_and_preprocess_csv(csv_path):
         df['relative_y'] = pd.to_numeric(
             df['relative_y'], errors='coerce').fillna(0)
 
-        print(f"Created relative coordinates:")
-        print(
-            f"  relative_x: {df['relative_x'].dtype}, {df['relative_x'].nunique()} unique values")
-        print(
-            f"  relative_y: {df['relative_y'].dtype}, {df['relative_y'].nunique()} unique values")
-
         # Safe range display
         try:
             x_min, x_max = float(df['relative_x'].min()), float(
                 df['relative_x'].max())
             y_min, y_max = float(df['relative_y'].min()), float(
                 df['relative_y'].max())
-            print(
-                f"  Ranges: x={x_min:.3f} to {x_max:.3f}, y={y_min:.3f} to {y_max:.3f}")
         except (ValueError, TypeError):
             print(
                 f"  Sample values: x={df['relative_x'].head(3).tolist()}, y={df['relative_y'].head(3).tolist()}")
@@ -308,7 +265,6 @@ def load_and_preprocess_csv(csv_path):
         col for col in feature_columns if col not in df.columns]
 
     if missing_features:
-        print(f"Missing features: {missing_features}")
         # Add missing features with default values
         for col in missing_features:
             df[col] = 0
@@ -330,10 +286,6 @@ def load_and_preprocess_csv(csv_path):
 def train_enhanced_random_forest(df, feature_columns):
     """Train Random Forest with enhanced configuration for better feature utilization."""
 
-    print("\n" + "="*50)
-    print("TRAINING ENHANCED RANDOM FOREST MODEL")
-    print("="*50)
-
     # Prepare features and target
     X = df[feature_columns].copy()
     y = df['label'].copy()
@@ -350,14 +302,11 @@ def train_enhanced_random_forest(df, feature_columns):
     y_encoded = label_encoder.fit_transform(y)
 
     # Calculate mutual information to understand feature relevance
-    print("\n🔍 Feature relevance analysis (Mutual Information):")
     mi_scores = mutual_info_classif(X, y_encoded, random_state=42)
     mi_df = pd.DataFrame({
         'feature': feature_columns,
         'mutual_info': mi_scores
     }).sort_values('mutual_info', ascending=False)
-
-    print(mi_df)
 
     # Split data
     can_stratify = all(count >= 2 for count in pd.Series(
@@ -393,7 +342,6 @@ def train_enhanced_random_forest(df, feature_columns):
         ccp_alpha=0.001            # Light pruning for smaller model
     )
 
-    print("\nTraining Enhanced Random Forest...")
     rf_model.fit(X_train, y_train)
 
     # Evaluate model
@@ -401,21 +349,10 @@ def train_enhanced_random_forest(df, feature_columns):
     test_score = rf_model.score(X_test, y_test)
     oob_score = rf_model.oob_score_
 
-    print(f"\nModel Performance:")
-    print(f"Training accuracy: {train_score:.3f}")
-    print(f"Test accuracy: {test_score:.3f}")
-    print(f"OOB accuracy: {oob_score:.3f}")
-
     # Detailed evaluation
     y_pred = rf_model.predict(X_test)
     unique_labels = np.unique(np.concatenate([y_test, y_pred]))
     present_class_names = [label_encoder.classes_[i] for i in unique_labels]
-
-    print("\nClassification Report:")
-    print(classification_report(y_test, y_pred,
-                                labels=unique_labels,
-                                target_names=present_class_names,
-                                zero_division=0))
 
     # Enhanced feature importance analysis
     feature_importance = pd.DataFrame({
@@ -433,81 +370,8 @@ def train_enhanced_random_forest(df, feature_columns):
     # Identify problematic features
     zero_importance = feature_importance[feature_importance['importance'] == 0]
     if len(zero_importance) > 0:
-        print("\n⚠️  Features with ZERO importance:")
         for feat in zero_importance['feature']:
             unique_vals = df[feat].nunique()
             val_counts = df[feat].value_counts()
-            print(
-                f"  {feat}: {unique_vals} unique values, distribution: {dict(val_counts)}")
 
     return rf_model, label_encoder, feature_importance
-
-
-def main():
-    """Enhanced main execution function."""
-
-    print("="*70)
-    print("ENHANCED PDF HEADING DETECTION - RANDOM FOREST TRAINER")
-    print("="*70)
-
-    csv_file_path = "./csv/pdf_features_filtered-file02.pdf.csv"
-
-    if not os.path.exists(csv_file_path):
-        print(f"Error: File '{csv_file_path}' not found!")
-        return
-
-    try:
-        # Load with enhanced preprocessing
-        df, feature_columns = load_and_preprocess_csv(csv_file_path)
-
-        if 'label' not in df.columns:
-            print("Error: 'label' column not found!")
-            return
-
-        # Train enhanced model
-        rf_model, label_encoder, feature_importance = train_enhanced_random_forest(
-            df, feature_columns)
-
-        # Save artifacts
-        joblib.dump(rf_model, 'enhanced_pdf_heading_rf_model.joblib')
-        joblib.dump(label_encoder, 'enhanced_label_encoder.joblib')
-
-        metadata = {
-            'feature_columns': feature_columns,
-            'class_names': label_encoder.classes_.tolist(),
-            'model_info': {
-                'type': 'Enhanced RandomForestClassifier',
-                'n_features': len(feature_columns),
-                'n_classes': len(label_encoder.classes_),
-                'enhancement': 'Composite features and improved weighting'
-            }
-        }
-
-        with open('enhanced_model_metadata.json', 'w') as f:
-            json.dump(metadata, f, indent=2)
-
-        feature_importance.to_csv(
-            'enhanced_feature_importance.csv', index=False)
-
-        print(f"\n✅ Enhanced training completed successfully!")
-        print("\n📊 Key improvements:")
-        print("- Composite formatting features for better discrimination")
-        print("- Enhanced feature engineering with proper validation")
-        print("- Improved Random Forest configuration")
-        print("- Comprehensive feature importance analysis")
-
-        # Show final feature importance summary
-        print(f"\n🏆 TOP 10 FEATURES:")
-        top_features = feature_importance.head(10)
-        for idx, row in top_features.iterrows():
-            print(
-                f"  {idx+1:2d}. {row['feature']:20} ({row['importance']:.4f})")
-
-    except Exception as e:
-        print(f"❌ Error during enhanced training: {str(e)}")
-        import traceback
-        traceback.print_exc()
-
-
-if __name__ == "__main__":
-    main()

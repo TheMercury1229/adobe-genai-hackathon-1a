@@ -16,9 +16,6 @@ def extract_pdf_features(pdf_path):
     doc = fitz.open(pdf_path)
     all_elements = []
 
-    print(f"Processing PDF: {pdf_path}")
-    print(f"Total pages: {doc.page_count}\n")
-
     for page_num in range(doc.page_count):
         page = doc[page_num]
         page_width = page.rect.width
@@ -313,7 +310,6 @@ def filter_significant_elements(elements):
     original_count = len(elements)
 
     # ===== STAGE 1: FONT RATIO FILTERING WITH BOLD/NUMBERED PRESERVATION =====
-    print(f"\n=== STAGE 1: FONT RATIO FILTERING (WITH BOLD/NUMBERED PRESERVATION) ===")
 
     # Extract font size ratios
     font_ratios = [elem['font_size_ratio'] for elem in elements]
@@ -329,29 +325,12 @@ def filter_significant_elements(elements):
     # Calculate some statistics
     unique_ratios = len(set(rounded_ratios))
 
-    print(f"Total elements: {original_count}")
-    print(f"Unique font ratios: {unique_ratios}")
-    print(f"Most common font ratio (body text): {mode_ratio}")
-    print(
-        f"Body text elements: {mode_count} ({mode_count/original_count*100:.1f}%)")
-
-    # Show top 5 most common ratios
-    print(f"\nTop 5 font ratios:")
-    for i, (ratio, count) in enumerate(ratio_counts.most_common(5)):
-        percentage = count/original_count*100
-        print(f"  {i+1}. {ratio}: {count} elements ({percentage:.1f}%)")
-
     # Check for predominantly bold content or numbered content
     total_bold = sum(1 for elem in elements if elem['is_bold'])
     total_starts_with_num = sum(
         1 for elem in elements if elem['starts_with_number'])
     bold_percentage = total_bold / original_count * 100
     numbered_percentage = total_starts_with_num / original_count * 100
-
-    print(f"\nContent analysis:")
-    print(f"Bold elements: {total_bold} ({bold_percentage:.1f}%)")
-    print(
-        f"Elements starting with numbers: {total_starts_with_num} ({numbered_percentage:.1f}%)")
 
     # Filter elements with new preservation logic
     font_filtered_elements = []
@@ -388,14 +367,6 @@ def filter_significant_elements(elements):
 
     font_filtered_count = len(font_filtered_elements)
 
-    print(f"\nStage 1 Results:")
-    print(f"Before font filtering: {original_count}")
-    print(f"After font filtering: {font_filtered_count}")
-    print(f"  - Preserved by font ratio: {preserved_by_font_ratio}")
-    print(f"  - Preserved by bold formatting: {preserved_by_bold}")
-    print(f"  - Preserved by bold+numbered: {preserved_by_number}")
-    print(f"Removed: {original_count - font_filtered_count} elements ({(original_count - font_filtered_count)/original_count*100:.1f}%)")
-
     if not font_filtered_elements:
         print("Warning: No elements remaining after font filtering!")
         return elements, {'stage': 'font_filtering_failed'}
@@ -413,11 +384,6 @@ def filter_significant_elements(elements):
     ]
 
     final_count = len(final_elements)
-    # ===== FINAL SUMMARY =====
-
-    print(f"\nBold/numbered preservation applied:")
-    print(f"  - Bold elements preserved: {preserved_by_bold}")
-    print(f"  - Bold+numbered elements preserved: {preserved_by_number}")
 
     # Show final font ratios distribution
     if final_elements:
@@ -425,10 +391,8 @@ def filter_significant_elements(elements):
                         for elem in final_elements]
         final_ratio_counts = Counter(final_ratios)
 
-        print(f"\nFinal font ratio distribution:")
         for ratio, count in sorted(final_ratio_counts.items(), reverse=True):
             percentage = count/final_count*100
-            print(f"  {ratio}: {count} elements ({percentage:.1f}%)")
 
         # Show preservation reasons distribution
         if 'preservation_reason' in final_elements[0]:
@@ -436,10 +400,8 @@ def filter_significant_elements(elements):
                                     for elem in final_elements]
             reason_counts = Counter(preservation_reasons)
 
-            print(f"\nPreservation reason distribution:")
             for reason, count in reason_counts.items():
                 percentage = count/final_count*100
-                print(f"  {reason}: {count} elements ({percentage:.1f}%)")
 
     # Compile comprehensive statistics
     filter_stats = {
